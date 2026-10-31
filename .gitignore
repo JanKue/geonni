@@ -218,3 +218,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+#####
+# Project specifics
+#   Exclude dataset contents (images, metadata), but not data-processing scripts/notebooks
+datasets/*
+!datasets/*.ipynb
+!datasets/*.py
