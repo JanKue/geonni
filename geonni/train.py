@@ -69,6 +69,10 @@ def eval_model(model: nn.Module, dataloader: DataLoader, device: torch.Device = 
     return (correct_pred / total_pred).item()
 
 
+def count_model_parameters(model: nn.Module) -> int:
+    return sum(param.numel() for param in model.parameters())
+
+
 if __name__ == "__main__":
     # Setup command line arguments
     parser = argparse.ArgumentParser()
@@ -97,6 +101,7 @@ if __name__ == "__main__":
         TRAIN_DEVICE = torch.device("cpu")
     
     model = resnet18(num_classes=N_CLASSES) # use predefined ResNet as placeholder
+    print(f"Model has {count_model_parameters(model):,} parameters.")
     model = train_model(model, train_dataloader, args.epochs, TRAIN_DEVICE)
     print("Done training! Proceeding with evaluation.")
 
