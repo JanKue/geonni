@@ -225,3 +225,5 @@ __marimo__/
 datasets/*
 !datasets/*.ipynb
 !datasets/*.py
+#   Exclude model checkpoints
+checkpoints/

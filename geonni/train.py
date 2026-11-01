@@ -1,4 +1,5 @@
 import argparse
+import datetime
 from pathlib import Path
 
 import torch
@@ -111,3 +112,7 @@ if __name__ == "__main__":
     print(f"Validation accuracy: {val_accuracy:.3%}")
     test_accuracy = eval_model(model, test_dataloader, EVAL_DEVICE)
     print(f"Test accuracy: {test_accuracy:.3%}")
+
+    # Save trained model
+    save_path = Path(__file__).parent.parent / f"checkpoints/{type(model).__name__}_{datetime.datetime.now():%Y-%m-%d-%H%M%S}.pt"
+    torch.save(model.state_dict(), f=save_path)
