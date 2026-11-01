@@ -1,3 +1,4 @@
+import argparse
 from pathlib import Path
 
 import torch
@@ -9,7 +10,7 @@ from torchvision.transforms import v2
 from tqdm import trange
 
 
-def get_dataloaders(root_path: Path, batch_size: int, out_size: int | tuple[int, int]) -> tuple[DataLoader, DataLoader, DataLoader]:
+def make_dataloaders(root_path: Path, batch_size: int, out_size: int | tuple[int, int]) -> tuple[DataLoader, DataLoader, DataLoader]:
     """Construct train/val/test dataloaders for the dataset at a given root path. The train split data is augmented and shuffled."""
     shared_transforms = v2.Compose([v2.Resize(size=out_size),
                                    v2.ToImage(),
@@ -69,19 +70,34 @@ def eval_model(model: nn.Module, dataloader: DataLoader, device: torch.Device = 
 
 
 if __name__ == "__main__":
+    # Setup command line arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--datapath", default="street-location-images/preprocessed_mapped",
+                        help="Path to the dataset folder. Relative paths are interpreted to be within the datasets directory. Absolute paths are used directly.")
+    parser.add_argument("--batch", type=int, default=32, help="Training batch size")
+    parser.add_argument("--epochs", type=int, default=10, help="Number of training epochs")
+    parser.add_argument("--device", default="cuda", choices=["cuda", "cpu"], help="Device used for training. Option cuda falls back on cpu if unavailable.")
+
+    args = parser.parse_args()
+
     # Dataset preparation
-    DATASET_PATH = Path(__file__).parent.parent / "datasets/street-location-images/preprocessed_mapped"
-    BATCH_SIZE = 32
+    arg_path = Path(args.datapath)
+    if arg_path.is_absolute():
+         final_dataset_path = arg_path
+    else:
+        final_dataset_path = Path(__file__).parent.parent / "datasets" / arg_path
     H, W = 90, 90 # final image height and width
-    train_dataloader, val_dataloader, test_dataloader = get_dataloaders(DATASET_PATH, BATCH_SIZE, (H, W))
+    train_dataloader, val_dataloader, test_dataloader = make_dataloaders(final_dataset_path, args.batch, (H, W))
     N_CLASSES = len(train_dataloader.dataset.classes)
 
     # Training preparation and execution
-    TRAIN_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    N_EPOCHS = 10
+    if args.device == "cuda" and torch.cuda.is_available():
+        TRAIN_DEVICE = torch.device("cuda")
+    else:
+        TRAIN_DEVICE = torch.device("cpu")
     
     model = resnet18(num_classes=N_CLASSES) # use predefined ResNet as placeholder
-    model = train_model(model, train_dataloader, N_EPOCHS, TRAIN_DEVICE)
+    model = train_model(model, train_dataloader, args.epochs, TRAIN_DEVICE)
     print("Done training! Proceeding with evaluation.")
 
     # Evaluation (placeholder)
