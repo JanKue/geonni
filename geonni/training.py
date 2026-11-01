@@ -34,45 +34,59 @@ def get_dataloaders(root_path: Path, batch_size: int, out_size: int | tuple[int,
     return train_dataloader, val_dataloader, test_dataloader
 
 
+def train_model(model: nn.Module, dataloader: DataLoader, num_epochs: int, device: torch.Device = None) -> nn.Module:
+    """Train a model on some data for some number of epochs. Return the trained model."""
+    # loss function, optimizer
+    loss_fn = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters())
+    # training loop
+    model.train().to(device=device)
+    for epoch in trange(num_epochs, desc="Training", unit="epoch"):
+            for inputs, targets in dataloader:
+                inputs, targets = inputs.to(device=device), targets.to(device=device)
+                optimizer.zero_grad()
+                outputs = model(inputs)
+                loss = loss_fn(outputs, targets)
+                loss.backward()
+                optimizer.step()
+
+    return model
+
+
+def eval_model(model: nn.Module, dataloader: DataLoader, device: torch.Device = None) -> float:
+    """Evaluate a model on some data. Return accuracy measurement."""
+    correct_pred, total_pred = 0, 0
+    model.eval().to(device=device)
+    with torch.no_grad():
+        for inputs, targets in dataloader:
+            inputs, targets = inputs.to(device=device), targets.to(device=device)
+            outputs = model(inputs)
+            predictions = outputs.argmax(axis=-1)
+            correct_pred += sum(predictions == targets)
+            total_pred += targets.size(0)
+
+    return (correct_pred / total_pred).item()
+
+
 if __name__ == "__main__":
+    # Dataset preparation
     DATASET_PATH = Path(__file__).parent.parent / "datasets/street-location-images/preprocessed_mapped"
     BATCH_SIZE = 32
     H, W = 90, 90 # final image height and width
     train_dataloader, val_dataloader, test_dataloader = get_dataloaders(DATASET_PATH, BATCH_SIZE, (H, W))
     N_CLASSES = len(train_dataloader.dataset.classes)
 
-    # Ready training
+    # Training preparation and execution
     TRAIN_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # use predefined ResNet as placeholder
-    model = resnet18(num_classes=N_CLASSES)
-    # loss function, optimizer
-    loss_fn = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters())
-
-    # Training loop
     N_EPOCHS = 10
-    model.train().to(TRAIN_DEVICE)
-    for epoch in trange(N_EPOCHS, desc="Training", unit="epoch"):
-        for inputs, targets in train_dataloader:
-            inputs, targets = inputs.to(TRAIN_DEVICE), targets.to(TRAIN_DEVICE)
-            optimizer.zero_grad()
-            outputs = model(inputs)
-            loss = loss_fn(outputs, targets)
-            loss.backward()
-            optimizer.step()
-
+    
+    model = resnet18(num_classes=N_CLASSES) # use predefined ResNet as placeholder
+    model = train_model(model, train_dataloader, N_EPOCHS, TRAIN_DEVICE)
     print("Done training! Proceeding with evaluation.")
 
-    # Validation loop (placeholder)
+    # Evaluation (placeholder)
     EVAL_DEVICE = TRAIN_DEVICE
-    correct_pred, total_pred = 0, 0
-    model.eval().to(EVAL_DEVICE)
-    with torch.no_grad():
-        for inputs, targets in val_dataloader:
-            inputs, targets = inputs.to(EVAL_DEVICE), targets.to(EVAL_DEVICE)
-            outputs = model(inputs)
-            predictions = outputs.argmax(axis=-1)
-            correct_pred += sum(predictions == targets)
-            total_pred += targets.size(0)
-
-    print(f"Validation accuracy: {correct_pred / total_pred:.3%}")
+    val_accuracy = eval_model(model, val_dataloader, EVAL_DEVICE)
+    print(f"Validation accuracy: {val_accuracy:.3%}")
+    test_accuracy = eval_model(model, test_dataloader, EVAL_DEVICE)
+    print(f"Test accuracy: {test_accuracy:.3%}")
