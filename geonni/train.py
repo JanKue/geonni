@@ -7,7 +7,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
 from torchvision.transforms import v2
-from tqdm import trange
+from tqdm import tqdm
 
 from .models import GeonniResNet
 
@@ -37,31 +37,43 @@ def make_dataloaders(root_path: Path, batch_size: int, out_size: int | tuple[int
     return train_dataloader, val_dataloader, test_dataloader
 
 
-def train_model(model: nn.Module, dataloader: DataLoader, num_epochs: int, device: torch.Device = None) -> nn.Module:
+def train_model(
+        model: nn.Module,
+        num_epochs: int,
+        train_dataloader: DataLoader,
+        val_dataloader: DataLoader = None,
+        device: torch.Device = None
+    ) -> nn.Module:
     """Train a model on some data for some number of epochs. Return the trained model."""
     # loss function, optimizer
     loss_fn = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters())
+    # run validation at least N_VAL times per training, if possible
+    N_VAL = 4
+    val_ep = max(num_epochs // N_VAL, 1)
     # training loop
     model.train().to(device=device)
-    for epoch in trange(num_epochs, desc="Training", unit="epoch"):
-            for inputs, targets in dataloader:
+    for epoch in range(num_epochs):
+            for inputs, targets in tqdm(train_dataloader, desc=f"Training epoch {epoch}", unit="batch"):
                 inputs, targets = inputs.to(device=device), targets.to(device=device)
                 optimizer.zero_grad()
                 outputs = model(inputs)
                 loss = loss_fn(outputs, targets)
                 loss.backward()
                 optimizer.step()
+            if (epoch % val_ep == val_ep - 1) and val_dataloader is not None:
+                val_accuracy = eval_model(model, val_dataloader, device)
+                print(f"Validation accuracy: {val_accuracy:.3%}")
 
     return model
 
 
 def eval_model(model: nn.Module, dataloader: DataLoader, device: torch.Device = None) -> float:
     """Evaluate a model on some data. Return accuracy measurement."""
-    correct_pred, total_pred = 0, 0
-    model.eval().to(device=device)
+    model.to(device=device)
     with torch.no_grad():
-        for inputs, targets in dataloader:
+        correct_pred, total_pred = 0, 0
+        for inputs, targets in tqdm(dataloader, desc="Evaluating model", unit="batch"):
             inputs, targets = inputs.to(device=device), targets.to(device=device)
             outputs = model(inputs)
             predictions = outputs.argmax(axis=-1)
@@ -104,13 +116,16 @@ if __name__ == "__main__":
 
     model = GeonniResNet(num_classes=N_CLASSES)
     print(f"Model has {count_model_parameters(model):,} parameters.")
-    model = train_model(model, train_dataloader, args.epochs, TRAIN_DEVICE)
-    print("Done training! Proceeding with evaluation.")
 
-    # Evaluation (placeholder)
+    try:
+        train_model(model=model, num_epochs=args.epochs, train_dataloader=train_dataloader, val_dataloader=val_dataloader, device=TRAIN_DEVICE)
+        print("Done training! Proceeding with test set evaluation...")
+    except KeyboardInterrupt:
+        print("Training interrupted. Proceeding with test set evaluation...")
+
+    # Test set evaluation
     EVAL_DEVICE = TRAIN_DEVICE
-    val_accuracy = eval_model(model, val_dataloader, EVAL_DEVICE)
-    print(f"Validation accuracy: {val_accuracy:.3%}")
+    model.eval()
     test_accuracy = eval_model(model, test_dataloader, EVAL_DEVICE)
     print(f"Test accuracy: {test_accuracy:.3%}")
 
