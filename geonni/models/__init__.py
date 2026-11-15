@@ -1,1 +1,1 @@
-from cnn_model import GeonniResNet
+from .cnn_model import GeonniResNet
