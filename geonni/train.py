@@ -6,9 +6,10 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
-from torchvision.models import resnet18
 from torchvision.transforms import v2
 from tqdm import trange
+
+from .models import GeonniResNet
 
 
 def make_dataloaders(root_path: Path, batch_size: int, out_size: int | tuple[int, int]) -> tuple[DataLoader, DataLoader, DataLoader]:
@@ -100,8 +101,8 @@ if __name__ == "__main__":
         TRAIN_DEVICE = torch.device("cuda")
     else:
         TRAIN_DEVICE = torch.device("cpu")
-    
-    model = resnet18(num_classes=N_CLASSES) # use predefined ResNet as placeholder
+
+    model = GeonniResNet(num_classes=N_CLASSES)
     print(f"Model has {count_model_parameters(model):,} parameters.")
     model = train_model(model, train_dataloader, args.epochs, TRAIN_DEVICE)
     print("Done training! Proceeding with evaluation.")
@@ -116,3 +117,4 @@ if __name__ == "__main__":
     # Save trained model
     save_path = Path(__file__).parent.parent / f"checkpoints/{type(model).__name__}_{datetime.datetime.now():%Y-%m-%d-%H%M%S}.pt"
     torch.save(model.state_dict(), f=save_path)
+    print("Saved model to", save_path)
