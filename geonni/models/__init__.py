@@ -1,1 +1,1 @@
-from .cnn_model import GeonniResNet
+from .resnet_models import ClassificationResNet

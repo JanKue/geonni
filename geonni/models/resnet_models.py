@@ -53,7 +53,7 @@ class ResidualBottleneck(ResidualBlock):
         )
 
 
-class GeonniResNet(nn.Module):
+class ClassificationResNet(nn.Module):
     """
     Image classifying convolutional neural network based on ResNet.
     """

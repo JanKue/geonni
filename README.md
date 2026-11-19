@@ -1,4 +1,6 @@
-**Geonni** determines where a street-level photo was taken, in the style of GeoGuessr.
+**Geonni** ("Jenny") determines where a street-level photo was taken, in the style of GeoGuessr.
+
+Present models work by classification, predicting photo's country.
 
 ### Setup
 

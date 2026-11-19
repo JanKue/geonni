@@ -9,7 +9,7 @@ from torchvision.datasets import ImageFolder
 from torchvision.transforms import v2
 from tqdm import tqdm
 
-from .models import GeonniResNet
+from .models import ClassificationResNet
 
 
 def make_dataloaders(root_path: Path, batch_size: int, out_size: int | tuple[int, int]) -> tuple[DataLoader, DataLoader, DataLoader]:
@@ -114,7 +114,7 @@ if __name__ == "__main__":
     else:
         TRAIN_DEVICE = torch.device("cpu")
 
-    model = GeonniResNet(num_classes=N_CLASSES)
+    model = ClassificationResNet(num_classes=N_CLASSES)
     print(f"Model has {count_model_parameters(model):,} parameters.")
 
     try:
