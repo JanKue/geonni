@@ -9,7 +9,12 @@ from torchvision.datasets import ImageFolder
 from torchvision.transforms import v2
 from tqdm import tqdm
 
-from .models import ClassificationResNet
+from .models import ClassificationResNet, ClassificationViT
+
+MODEL_MAPPING = {
+    "resnet": ClassificationResNet,
+    "vit": ClassificationViT,
+}
 
 
 def make_dataloaders(root_path: Path, batch_size: int, out_size: int | tuple[int, int]) -> tuple[DataLoader, DataLoader, DataLoader]:
@@ -92,6 +97,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--datapath", default="street-location-images/preprocessed_mapped",
                         help="Path to the dataset folder. Relative paths are interpreted to be within the datasets directory. Absolute paths are used directly.")
+    parser.add_argument("--model", type=str, default="resnet", choices=MODEL_MAPPING.keys(), help="Type of model to train")
     parser.add_argument("--batch", type=int, default=32, help="Training batch size")
     parser.add_argument("--epochs", type=int, default=10, help="Number of training epochs")
     parser.add_argument("--device", default="cuda", choices=["cuda", "cpu"], help="Device used for training. Option cuda falls back on cpu if unavailable.")
@@ -114,7 +120,9 @@ if __name__ == "__main__":
     else:
         TRAIN_DEVICE = torch.device("cpu")
 
-    model = ClassificationResNet(num_classes=N_CLASSES)
+    # Select and initialize model
+    model: nn.Module = MODEL_MAPPING[args.model](num_classes=N_CLASSES, img_size=H, patch_size=9)
+
     print(f"Model has {count_model_parameters(model):,} parameters.")
 
     try:
