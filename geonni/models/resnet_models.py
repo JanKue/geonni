@@ -57,7 +57,7 @@ class ClassificationResNet(nn.Module):
     """
     Image classifying convolutional neural network based on ResNet.
     """
-    def __init__(self, num_classes: int):
+    def __init__(self, num_classes: int, **kwargs):
         super().__init__()
 
         self.encoder = nn.Sequential( # input img shape: 90x90x3
