@@ -1,5 +1,6 @@
 import argparse
 import datetime
+import math
 from pathlib import Path
 
 import torch
@@ -54,9 +55,9 @@ def train_model(
     loss_fn = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters())
     scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.01, epochs=num_epochs, steps_per_epoch=len(train_dataloader))
-    # run validation at least N_VAL times per training, if possible
-    N_VAL = 4
-    val_ep = max(num_epochs // N_VAL, 1)
+    # run validation after some number of epochs
+    n_val = 2 * math.log(num_epochs)
+    val_ep = max(num_epochs // n_val, 1) if n_val > 0 else 1
     # training loop
     model.train().to(device=device)
     for epoch in range(num_epochs):
