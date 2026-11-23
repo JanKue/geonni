@@ -53,19 +53,21 @@ def train_model(
     # loss function, optimizer
     loss_fn = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters())
+    scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.01, epochs=num_epochs, steps_per_epoch=len(train_dataloader))
     # run validation at least N_VAL times per training, if possible
     N_VAL = 4
     val_ep = max(num_epochs // N_VAL, 1)
     # training loop
     model.train().to(device=device)
     for epoch in range(num_epochs):
-            for inputs, targets in tqdm(train_dataloader, desc=f"Training epoch {epoch}", unit="batch"):
+            for inputs, targets in tqdm(train_dataloader, desc=f"Training epoch {epoch:3d}", unit="batch"):
                 inputs, targets = inputs.to(device=device), targets.to(device=device)
                 optimizer.zero_grad()
                 outputs = model(inputs)
                 loss = loss_fn(outputs, targets)
                 loss.backward()
                 optimizer.step()
+                scheduler.step()
             if (epoch % val_ep == val_ep - 1) and val_dataloader is not None:
                 val_accuracy = eval_model(model, val_dataloader, device)
                 print(f"Validation accuracy: {val_accuracy:.3%}")
